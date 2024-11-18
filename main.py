@@ -11,14 +11,14 @@ from speed_and_distance_estimator import SpeedAndDistance_Estimator
 
 def main():
     # Read Video
-    video_frames = read_video('input_videos/08fd33_4.mp4')
+    video_frames = read_video('./input_videos/08fd33_4.mp4')
 
     # Initialize Tracker
-    tracker = Tracker('models/best.pt')
+    tracker = Tracker('./models/best.pt')
 
     tracks = tracker.get_object_tracks(video_frames,
                                        read_from_stub=True,
-                                       stub_path='stubs/track_stubs.pkl')
+                                       stub_path='./stubs/track_stubs.pkl')
     # Get object positions 
     tracker.add_position_to_tracks(tracks)
 
@@ -26,7 +26,7 @@ def main():
     camera_movement_estimator = CameraMovementEstimator(video_frames[0])
     camera_movement_per_frame = camera_movement_estimator.get_camera_movement(video_frames,
                                                                                 read_from_stub=True,
-                                                                                stub_path='stubs/camera_movement_stub.pkl')
+                                                                                stub_path='./stubs/camera_movement_stub.pkl')
     camera_movement_estimator.add_adjust_positions_to_tracks(tracks,camera_movement_per_frame)
 
 
@@ -43,18 +43,20 @@ def main():
 
     # Assign Player Teams
     team_assigner = TeamAssigner()
-    team_assigner.assign_team_color(video_frames[0], 
+    team_assigner.assign_team_color(video_frames[0],
                                     tracks['players'][0])
-    
+
     for frame_num, player_track in enumerate(tracks['players']):
+        if frame_num >= len(video_frames):
+            break
         for player_id, track in player_track.items():
-            team = team_assigner.get_player_team(video_frames[frame_num],   
+            team = team_assigner.get_player_team(video_frames[frame_num],
                                                  track['bbox'],
                                                  player_id)
-            tracks['players'][frame_num][player_id]['team'] = team 
+            tracks['players'][frame_num][player_id]['team'] = team
             tracks['players'][frame_num][player_id]['team_color'] = team_assigner.team_colors[team]
 
-    
+
     # Assign Ball Aquisition
     player_assigner =PlayerBallAssigner()
     team_ball_control= []
@@ -63,12 +65,14 @@ def main():
         assigned_player = player_assigner.assign_ball_to_player(player_track, ball_bbox)
 
         if assigned_player != -1:
-            tracks['players'][frame_num][assigned_player]['has_ball'] = True
-            team_ball_control.append(tracks['players'][frame_num][assigned_player]['team'])
+            if 'team' in tracks['players'][frame_num][assigned_player]:
+                tracks['players'][frame_num][assigned_player]['has_ball'] = True
+                team_ball_control.append(tracks['players'][frame_num][assigned_player]['team'])
+            else:
+                team_ball_control.append(team_ball_control[-1])
         else:
             team_ball_control.append(team_ball_control[-1])
-    team_ball_control= np.array(team_ball_control)
-
+    team_ball_control = np.array(team_ball_control)
 
     # Draw output 
     ## Draw object Tracks
@@ -81,7 +85,7 @@ def main():
     speed_and_distance_estimator.draw_speed_and_distance(output_video_frames,tracks)
 
     # Save video
-    save_video(output_video_frames, 'output_videos/output_video.avi')
+    save_video(output_video_frames, './output_videos/output_video.avi')
 
 if __name__ == '__main__':
     main()

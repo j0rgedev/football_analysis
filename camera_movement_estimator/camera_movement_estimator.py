@@ -80,7 +80,13 @@ class CameraMovementEstimator():
         return camera_movement
     
     def draw_camera_movement(self,frames, camera_movement_per_frame):
-        output_frames=[]
+        output_frames = []
+
+        # Validar que las longitudes coincidan
+        if len(camera_movement_per_frame) < len(frames):
+            # Rellenar con (0, 0) para los frames restantes
+            while len(camera_movement_per_frame) < len(frames):
+                camera_movement_per_frame.append((0, 0))
 
         for frame_num, frame in enumerate(frames):
             frame= frame.copy()

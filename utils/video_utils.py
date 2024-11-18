@@ -2,12 +2,18 @@ import cv2
 
 def read_video(video_path):
     cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Unable to open video file: {video_path}")
+
     frames = []
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         frames.append(frame)
+    cap.release()
+    if not frames:
+        raise ValueError("No frames were read from the video. Please check the video file.")
     return frames
 
 def save_video(ouput_video_frames,output_video_path):

@@ -3,3 +3,8 @@
 .idea
 .vscode
 .venv
+./input_videos/*
+./output_videos/*
+./models/*
+./runs/*
+./stubs/*

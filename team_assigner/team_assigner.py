@@ -1,3 +1,4 @@
+import numpy as np
 from sklearn.cluster import KMeans
 
 class TeamAssigner:
@@ -15,23 +16,27 @@ class TeamAssigner:
 
         return kmeans
 
-    def get_player_color(self,frame,bbox):
-        image = frame[int(bbox[1]):int(bbox[3]),int(bbox[0]):int(bbox[2])]
+    def get_player_color(self, frame, bbox):
+        image = frame[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
 
-        top_half_image = image[0:int(image.shape[0]/2),:]
+        top_half_image = image[0:int(image.shape[0] / 2), :]
+
+        if top_half_image.size == 0:
+            return np.array([0, 0, 0])  # Return a default color or handle as needed
 
         # Get Clustering model
         kmeans = self.get_clustering_model(top_half_image)
 
-        # Get the cluster labels forr each pixel
+        # Get the cluster labels for each pixel
         labels = kmeans.labels_
 
         # Reshape the labels to the image shape
-        clustered_image = labels.reshape(top_half_image.shape[0],top_half_image.shape[1])
+        clustered_image = labels.reshape(top_half_image.shape[0], top_half_image.shape[1])
 
         # Get the player cluster
-        corner_clusters = [clustered_image[0,0],clustered_image[0,-1],clustered_image[-1,0],clustered_image[-1,-1]]
-        non_player_cluster = max(set(corner_clusters),key=corner_clusters.count)
+        corner_clusters = [clustered_image[0, 0], clustered_image[0, -1], clustered_image[-1, 0],
+                           clustered_image[-1, -1]]
+        non_player_cluster = max(set(corner_clusters), key=corner_clusters.count)
         player_cluster = 1 - non_player_cluster
 
         player_color = kmeans.cluster_centers_[player_cluster]

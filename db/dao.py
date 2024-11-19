@@ -112,3 +112,46 @@ def guardar_datos(tracks, team_ball_control, video_id, keyspace="analitica_depor
     # Cerrar conexión
     cassandra.close()
     print(f"Datos del video {video_id} guardados correctamente.")
+
+def verificar_existencia_y_limpiar(video_id, keyspace="analitica_deportes"):
+    cassandra = CassandraConnection(keyspace)
+    cassandra.connect()
+
+    # Consultas para verificar la existencia del video en las tablas
+    query_check_jugadores = "SELECT COUNT(*) FROM jugadores WHERE id_video = ?"
+    query_check_balon = "SELECT COUNT(*) FROM balon WHERE id_video = ?"
+
+    # Ejecutar consultas
+    result_jugadores = cassandra.execute_query(query_check_jugadores, [video_id])
+    result_balon = cassandra.execute_query(query_check_balon, [video_id])
+
+    exists_in_jugadores = result_jugadores[0].count > 0
+    exists_in_balon = result_balon[0].count > 0
+
+    # Mensajes para consola y limpieza si es necesario
+    if exists_in_jugadores and exists_in_balon:
+        print(f"El video {video_id} ya existe en ambas tablas. No se realizará ninguna acción.")
+        status = "exists_in_both"
+    elif exists_in_jugadores and not exists_in_balon:
+        print(f"El video {video_id} se encontró en la tabla 'jugadores' pero no en 'balon'.")
+        print(f"Se borrarán los datos de 'jugadores' para volver a generarlos.")
+        query_delete_jugadores = """
+        DELETE FROM jugadores WHERE id_video = ?
+        """
+        cassandra.execute_query(query_delete_jugadores, (video_id,))
+        status = "exists_in_jugadores"
+    elif not exists_in_jugadores and exists_in_balon:
+        print(f"El video {video_id} se encontró en la tabla 'balon' pero no en 'jugadores'.")
+        print(f"Se borrarán los datos de 'balon' para volver a generarlos.")
+        query_delete_balon = """
+        DELETE FROM balon WHERE id_video = ?
+        """
+        cassandra.execute_query(query_delete_balon, (video_id,))
+        status = "exists_in_balon"
+    else:
+        print(f"El video {video_id} no existe en ninguna tabla. Se procederá a guardarlo por primera vez.")
+        status = "does_not_exist"
+
+    cassandra.close()
+
+    return status

@@ -1,5 +1,5 @@
 import os
-from db.dao import guardar_datos
+from db.dao import guardar_datos, verificar_existencia_y_limpiar
 from utils import read_video, save_video
 from trackers import Tracker
 import time
@@ -118,19 +118,60 @@ def main():
 
     os.makedirs(output_folder, exist_ok=True)
 
-    # Procesar todos los videos en la carpeta
-    for video_file in os.listdir(input_folder):
-        if video_file.endswith(('.mp4', '.avi', '.mov')):  # Filtrar por extensiones válidas
-            video_path = os.path.join(input_folder, video_file)
-            output_path = os.path.join(output_folder, f'output_{os.path.splitext(video_file)[0]}.mp4')
+    # Preguntar al usuario si desea procesar todos los videos o uno específico
+    print("¿Deseas procesar todos los videos o solo un video específico?")
+    print("1. Procesar todos los videos")
+    print("2. Procesar un video específico")
+    choice = input("Elige una opción (1/2): ")
+
+    if choice == "1":
+        # Procesar todos los videos
+        for video_file in os.listdir(input_folder):
+            if video_file.endswith(('.mp4', '.avi', '.mov')):  # Filtrar por extensiones válidas
+                video_path = os.path.join(input_folder, video_file)
+                output_path = os.path.join(output_folder, f'output_{os.path.splitext(video_file)[0]}.mp4')
+
+                # Usar el nombre del archivo como ID del video
+                video_id = os.path.splitext(video_file)[0]
+                print(f"Verificando existencia del video {video_file}...")
+
+                # Verificar existencia y limpiar si es necesario
+                status = verificar_existencia_y_limpiar(video_id)
+
+                # Procesar el video solo si tiene las keys válidas
+                if status in ["exists_in_jugadores", "exists_in_balon", "does_not_exist"]:
+                    print(f"Procesando video {video_id} con estado: {status}...")
+                    process_video(video_path, output_path, video_id)
+                    print(f"Procesamiento de video {video_file} completado.")
+            else:
+                print(f"El archivo {video_file} no es un video compatible, se omitirá.")
+
+    elif choice == "2":
+        # Procesar un solo video
+        video_name = input("Ingresa el nombre del archivo de video (incluye la extensión, e.g., video.mp4): ")
+        video_path = os.path.join(input_folder, video_name)
+
+        if os.path.isfile(video_path) and video_name.endswith(('.mp4', '.avi', '.mov')):
+            output_path = os.path.join(output_folder, f'output_{os.path.splitext(video_name)[0]}.mp4')
 
             # Usar el nombre del archivo como ID del video
-            video_id = os.path.splitext(video_file)[0]
-            print(f"Procesando video {video_file}...")
-            process_video(video_path, output_path, video_id)
-            print(f"Procesamiento de video {video_file} completado.")
+            video_id = os.path.splitext(video_name)[0]
+            print(f"Verificando existencia del video {video_name}...")
+
+            # Verificar existencia y limpiar si es necesario
+            status = verificar_existencia_y_limpiar(video_id)
+
+            # Procesar el video solo si tiene las keys válidas
+            if status in ["exists_in_jugadores", "exists_in_balon", "does_not_exist"]:
+                print(f"Procesando video {video_id} con estado: {status}...")
+                process_video(video_path, output_path, video_id)
+                print(f"Procesamiento de video {video_name} completado.")
         else:
-            print(f"El video {video_file} no es compatible, se omitirá.")
+            print(f"El archivo {video_name} no existe en la carpeta {input_folder} o no es un formato compatible.")
+
+    else:
+        print("Opción no válida. El programa se cerrará.")
+        return
 
 if __name__ == '__main__':
     main()

@@ -14,10 +14,15 @@ class CassandraConnection:
         print(f"Conexión exitosa al keyspace: {self.keyspace}")
 
     def execute_query(self, query, values=None):
-        if values:
-            self.session.execute(query, values)
-        else:
-            self.session.execute(query)
+        try:
+            if values:
+                prepared = self.session.prepare(query)
+                return self.session.execute(prepared, values)
+            else:
+                return self.session.execute(query)
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise
 
     def execute_batch(self, query_template, batch):
         batch_statement = BatchStatement()
